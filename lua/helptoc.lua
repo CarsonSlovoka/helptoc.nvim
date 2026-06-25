@@ -142,6 +142,13 @@ function M.open()
   vim.keymap.set("n", "q", function() M.close() end, opts)
   vim.keymap.set("n", "r", M.refresh, opts)
 
+
+  vim.keymap.set('n', '+', '<cmd>vertical resize +2<cr>',
+    vim.tbl_deep_extend("force", opts, { desc = 'Increase window width' }))
+  vim.keymap.set('n', '-', '<cmd>vertical resize -2<cr>',
+    vim.tbl_deep_extend("force", opts, { desc = 'Decrease window width' }))
+
+
   M.refresh()
 end
 
