@@ -19,6 +19,10 @@ local config = {
 }
 ```
 
+## command
+
+- `:Helptoc`
+
 ## keymap
 
 - `q`: close
