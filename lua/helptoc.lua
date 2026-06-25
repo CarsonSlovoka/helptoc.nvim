@@ -14,6 +14,7 @@ local config = {
   width = 38,
   position = "right", -- "right" 或 "left"
   auto_refresh = true,
+  indent_size = "auto",
   highlight = {
     heading1 = "Title",
     heading2 = "Function",
@@ -165,7 +166,9 @@ function M.refresh()
   toc_to_lnum = {}
   local highlights = {}
 
-  local indent_size = vim.api.nvim_get_option_value("shiftwidth", {})
+  local indent_size = config.indent_size == "auto" and
+      vim.api.nvim_get_option_value("shiftwidth", {}) or
+      config.indent_size
   for i, entry in ipairs(entries) do
     -- local indent = string.rep("  ", entry.level - 1)
     local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
