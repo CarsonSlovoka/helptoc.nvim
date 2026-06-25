@@ -6,8 +6,8 @@ local winid = nil
 local bufid = nil
 local ns_id = vim.api.nvim_create_namespace("helptoc")
 
--- 用來儲存 TOC 行號 → 原 buffer 行號 的對應表
-local toc_to_lnum = {}
+local toc_to_lnum = {} -- { toc_row = main_lnum } -- 用來儲存 TOC 行號 → 原 buffer 行號 的對應表
+local lnum_to_toc = {} -- { main_lnum = toc_row } -- 反查表
 
 local pattern = {
   "*.md", "*.markdown",
@@ -71,6 +71,7 @@ function M.render_toc(entries)
     local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
     table.insert(lines, indent .. entry.text)
     toc_to_lnum[i] = entry.lnum
+    lnum_to_toc[entry.lnum] = i
 
     -- 根據層級設定 Highlight
     local hl_group =
@@ -259,6 +260,13 @@ function M.open()
   local main_win = vim.api.nvim_get_current_win()
   -- local main_buf = vim.api.nvim_get_current_buf()
 
+  local group = vim.api.nvim_create_augroup("HelpTocSync", { clear = true })
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    group = group,
+    buffer = vim.api.nvim_win_get_buf(main_win),
+    callback = M.sync_cursor,
+  })
+
   -- 建立 TOC buffer
   local toc_buf = create_toc_buffer()
 
@@ -297,6 +305,8 @@ function M.close()
     vim.api.nvim_win_close(winid, true)
     winid = nil
     toc_to_lnum = {}
+    lnum_to_toc = {}
+    pcall(vim.api.nvim_del_augroup_by_name, "HelpTocSync")
   end
 end
 
@@ -342,6 +352,39 @@ function M.jump_to_entry(main_win)
 
   -- 可選：置中畫面
   -- vim.cmd("normal! zz")
+end
+
+-- 同步游標位置的函數
+function M.sync_cursor()
+  if not (winid and vim.api.nvim_win_is_valid(winid)) then return end
+
+  local main_win = vim.api.nvim_get_current_win()
+  -- 只有當焦點在主視窗時才處理同步，避免死循環
+  if main_win == winid then
+    return
+  end
+
+  local main_lnum = vim.api.nvim_win_get_cursor(main_win)[1]
+
+  -- 找最近的 TOC entry (處理游標在兩個標題之間的情況)
+  local target_toc_line = nil
+  local sorted_lnums = vim.tbl_keys(lnum_to_toc)
+  table.sort(sorted_lnums)
+
+  for _, lnum in ipairs(sorted_lnums) do
+    if lnum <= main_lnum then
+      target_toc_line = lnum_to_toc[lnum]
+    else
+      break
+    end
+  end
+
+  if target_toc_line then
+    vim.api.nvim_win_set_cursor(winid, { target_toc_line, 0 })
+
+    -- 可選：讓 TOC 視窗捲動一下，確保目標在視窗中間 -- Note: 如果 `vim.opt.scrolloff = 999` 已經是這樣了，那麼其實這個不設定也沒差
+    vim.api.nvim_win_call(winid, function() vim.cmd("normal! zz") end)
+  end
 end
 
 -- ==================== 自動命令 ====================
