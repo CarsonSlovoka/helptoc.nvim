@@ -29,7 +29,72 @@ local config = {
   }
 }
 
+-- ==================== LSP ====================
+-- 取得 LSP Symbols 的封裝
+local function get_lsp_symbols(bufnr)
+  local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
+  vim.lsp.buf_request(bufnr, "textDocument/documentSymbol", params, function(err, result, ctx, config)
+    if err or not result then return end
+    local entries = {}
+
+    local function process_symbols(list, depth)
+      for _, sym in ipairs(list) do
+        -- 6: Method, 12: Function
+        if sym.kind == 6 or sym.kind == 12 then
+          table.insert(entries, {
+            lnum = sym.selectionRange.start.line + 1,
+            level = depth,
+            text = sym.name
+          })
+        end
+        if sym.children then process_symbols(sym.children, depth + 1) end
+      end
+    end
+    process_symbols(result, 1)
+    M.render_toc(entries) -- 拿到資料後呼叫渲染
+  end)
+end
+
 -- ==================== Parser ====================
+function M.render_toc(entries)
+  if not winid or not vim.api.nvim_win_is_valid(winid) then return end
+  local toc_buf = vim.api.nvim_win_get_buf(winid)
+
+  local lines = {}
+  toc_to_lnum = {}
+  local highlights = {}
+  local indent_size = config.indent_size == "auto" and
+      vim.api.nvim_get_option_value("shiftwidth", {}) or
+      config.indent_size
+
+  for i, entry in ipairs(entries) do
+    local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
+    table.insert(lines, indent .. entry.text)
+    toc_to_lnum[i] = entry.lnum
+
+    -- 根據層級設定 Highlight
+    local hl_group =
+        (entry.level == 1 and config.highlight.heading1) or
+        (entry.level == 2 and config.highlight.heading2) or
+        config.highlight.heading3 or "Normal"
+    table.insert(highlights, { #lines - 1, hl_group })
+  end
+
+  vim.bo[toc_buf].modifiable = true
+  vim.api.nvim_buf_set_lines(toc_buf, 0, -1, false, lines)
+
+  -- 清空舊 highlight
+  vim.api.nvim_buf_clear_namespace(toc_buf, ns_id, 0, -1)
+
+  -- 套用 highlight
+  for _, hl in ipairs(highlights) do
+    -- vim.api.nvim_buf_add_highlight(toc_buf, ns_id, hl[2], hl[1], 0, -1) -- 此方法已棄用
+    vim.hl.range(toc_buf, ns_id, hl[2], { hl[1], 0 }, { hl[1], -1 })
+    -- vim.hl.range(buf, ns_id, hl.highlight, { hl.line_num, hl.start_col }, { hl.line_num, hl.end_col }) -- ns_id不可以用0，一定要建立
+  end
+  vim.bo[toc_buf].modifiable = false
+end
+
 local function parse_markdown(bufnr)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local entries = {}
@@ -242,47 +307,17 @@ function M.refresh()
 
   local main_win = vim.fn.win_getid(0) == winid and vim.fn.winnr("#") or 0
   local main_buf = vim.api.nvim_win_get_buf(main_win)
-  local entries = get_entries(main_buf)
+  local ft = vim.bo[main_buf].filetype
 
-  local lines = {}
-  toc_to_lnum = {}
-  local highlights = {}
-
-  local indent_size = config.indent_size == "auto" and
-      vim.api.nvim_get_option_value("shiftwidth", {}) or
-      config.indent_size
-  for i, entry in ipairs(entries) do
-    -- local indent = string.rep("  ", entry.level - 1)
-    local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
-
-    table.insert(lines, indent .. entry.text)
-    toc_to_lnum[i] = entry.lnum -- 記錄對應關係
-
-    -- 記錄 highlight 位置
-    if entry.level == 1 then
-      table.insert(highlights, { #lines - 1, config.highlight.heading1 })
-    elseif entry.level == 2 then
-      table.insert(highlights, { #lines - 1, config.highlight.heading2 })
-    elseif entry.level == 3 then
-      table.insert(highlights, { #lines - 1, config.highlight.heading3 })
-    end
+  -- 如果是 Lua 且有 LSP client，走 LSP 流程
+  if ft == "lua" and #vim.lsp.get_clients({ bufnr = main_buf }) > 0 then
+    -- Note: lsp 是異步的, 所以只能在裡面觸發render_toc
+    get_lsp_symbols(main_buf)
+  else
+    -- 其他情況或無 LSP 時，退回使用原本的靜態 Parser
+    local entries = get_entries(main_buf)
+    M.render_toc(entries)
   end
-
-  local toc_buf = vim.api.nvim_win_get_buf(winid)
-  vim.bo[toc_buf].modifiable = true
-  vim.api.nvim_buf_set_lines(toc_buf, 0, -1, false, lines)
-
-  -- 清空舊 highlight
-  vim.api.nvim_buf_clear_namespace(toc_buf, ns_id, 0, -1)
-
-  -- 套用 highlight
-  for _, hl in ipairs(highlights) do
-    -- vim.api.nvim_buf_add_highlight(toc_buf, ns_id, hl[2], hl[1], 0, -1) -- 此方法已棄用
-    vim.hl.range(toc_buf, ns_id, hl[2], { hl[1], 0 }, { hl[1], -1 }) -- ns_id不可以用0，一定要建立
-    -- vim.hl.range(buf, ns_id, hl.highlight, { hl.line_num, hl.start_col }, { hl.line_num, hl.end_col }) -- ns_id不可以用0，一定要建立
-  end
-
-  vim.bo[toc_buf].modifiable = false
 end
 
 function M.toggle()
