@@ -366,7 +366,22 @@ function M.setup(opts)
   vim.api.nvim_create_autocmd({ "BufEnter" }, {
     pattern = pattern,
     callback = function()
-      vim.api.nvim_buf_create_user_command(0, 'Helptoc', M.toggle, { desc = "開啟/關閉 HelpTOC 常駐視窗" })
+      vim.api.nvim_buf_create_user_command(0, 'Helptoc', function(args)
+          if args.fargs[1] == "open" then
+            M.open()
+          elseif args.fargs[1] == "close" then
+            M.close()
+          else
+            M.toggle()
+          end
+        end,
+        {
+          desc = "Open/close the HelpTOC resident window",
+          nargs = "?",
+          complete = function(arg_lead)
+            return vim.fn.matchfuzzy({ "open", "close" }, arg_lead)
+          end,
+        })
     end,
   })
 end
