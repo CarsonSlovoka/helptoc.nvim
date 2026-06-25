@@ -12,7 +12,8 @@ local toc_to_lnum = {}
 local pattern = {
   "*.md", "*.markdown",
   "*/doc/*.txt",
-  "*.sh", "*.bash"
+  "*.sh", "*.bash",
+  "*.lua",
 }
 
 -- ==================== 配置 ====================
@@ -117,6 +118,44 @@ local function parse_bash(bufnr)
   return entries
 end
 
+local function parse_lua(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local entries = {}
+
+  for lnum, line in ipairs(lines) do
+    local func_name
+
+    -- 1. function name(...)
+    func_name = line:match("^%s*function%s+([%w_][%w_0-9%.]*)%s*%(")
+
+    -- 2. local function name(...)
+    if not func_name then
+      func_name = line:match("^%s*local%s+function%s+([%w_][%w_0-9]*)%s*%(")
+    end
+
+    -- 3. name = function(...)
+    if not func_name then
+      func_name = line:match("^%s*([%w_][%w_0-9%.]*)%s*=%s*function%s*%(")
+    end
+
+    -- 4. local name = function(...)
+    if not func_name then
+      func_name = line:match("^%s*local%s+([%w_][%w_0-9%.]*)%s*=%s*function%s*%(")
+    end
+
+    if func_name then
+      -- 清理多餘的 table 前綴（例如 mytable.func → func）
+      func_name = func_name:match("%.([^%.]+)$") or func_name
+      table.insert(entries, {
+        lnum = lnum,
+        level = 1,
+        text = "λ " .. func_name, -- 用 λ 符號區別 Lua function
+      })
+    end
+  end
+  return entries
+end
+
 local function get_entries(bufnr)
   local ft = vim.bo[bufnr].filetype
   if ft == "markdown" then
@@ -125,6 +164,8 @@ local function get_entries(bufnr)
     return parse_help(bufnr)
   elseif ft == "sh" or ft == "bash" then
     return parse_bash(bufnr)
+  elseif ft == "lua" then
+    return parse_lua(bufnr)
   else
     return {}
   end
