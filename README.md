@@ -31,4 +31,4 @@ local config = {
 
 - [v] Markdown
 - [v] Help
-- [ ] sh
+- [v] sh (僅function, 且都當成level 1)

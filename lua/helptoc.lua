@@ -9,6 +9,12 @@ local ns_id = vim.api.nvim_create_namespace("helptoc")
 -- 用來儲存 TOC 行號 → 原 buffer 行號 的對應表
 local toc_to_lnum = {}
 
+local pattern = {
+  "*.md", "*.markdown",
+  "*/doc/*.txt",
+  "*.sh", "*.bash"
+}
+
 -- ==================== 配置 ====================
 local config = {
   width = 38,
@@ -85,12 +91,40 @@ local function parse_help(bufnr)
   return entries
 end
 
+local function parse_bash(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local entries = {}
+
+  for lnum, line in ipairs(lines) do
+    local func_name
+
+    -- 形式1: function name() {
+    func_name = line:match("^%s*function%s+([%w_][%w_0-9]*)")
+    if not func_name then
+      -- 形式2: name() {
+      func_name = line:match("^%s*([%w_][%w_0-9]*)%s*%(%s*%)%s*{")
+    end
+
+    if func_name then
+      table.insert(entries, {
+        lnum = lnum,
+        level = 1, -- function 統一當作 level 1
+        text = func_name,
+        -- text = "ƒ " .. func_name, -- 加符號區別 (可以考慮)
+      })
+    end
+  end
+  return entries
+end
+
 local function get_entries(bufnr)
   local ft = vim.bo[bufnr].filetype
   if ft == "markdown" then
     return parse_markdown(bufnr)
   elseif ft == "help" then
     return parse_help(bufnr)
+  elseif ft == "sh" or ft == "bash" then
+    return parse_bash(bufnr)
   else
     return {}
   end
@@ -240,7 +274,7 @@ function M.setup(opts)
   config = vim.tbl_deep_extend("force", config, opts)
 
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged" }, {
-    pattern = { "*.md", "*.txt", "*/doc/*.txt" },
+    pattern = pattern,
     callback = function()
       if winid and vim.api.nvim_win_is_valid(winid) then
         vim.schedule(M.refresh)
@@ -254,7 +288,7 @@ function M.setup(opts)
 
   -- vim.api.nvim_create_user_command('HelpToc', M.toggle, { desc = "開啟/關閉 HelpTOC 常駐視窗" })
   vim.api.nvim_create_autocmd({ "BufEnter" }, {
-    pattern = { "*.md", "*.txt", "*/doc/*.txt" },
+    pattern = pattern,
     callback = function()
       vim.api.nvim_buf_create_user_command(0, 'Helptoc', M.toggle, { desc = "開啟/關閉 HelpTOC 常駐視窗" })
     end,
