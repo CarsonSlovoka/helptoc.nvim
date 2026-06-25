@@ -6,6 +6,9 @@ local winid = nil
 local bufid = nil
 local ns_id = vim.api.nvim_create_namespace("helptoc")
 
+-- 用來儲存 TOC 行號 → 原 buffer 行號 的對應表
+local toc_to_lnum = {}
+
 -- ==================== 配置 ====================
 local config = {
   width = 38,
@@ -145,6 +148,7 @@ function M.close()
   if winid and vim.api.nvim_win_is_valid(winid) then
     vim.api.nvim_win_close(winid, true)
     winid = nil
+    toc_to_lnum = {}
   end
 end
 
@@ -153,18 +157,21 @@ function M.refresh()
     return
   end
 
-  local main_buf = vim.api.nvim_win_get_buf(vim.fn.win_getid(0) == winid and vim.fn.winnr("#") or 0)
+  local main_win = vim.fn.win_getid(0) == winid and vim.fn.winnr("#") or 0
+  local main_buf = vim.api.nvim_win_get_buf(main_win)
   local entries = get_entries(main_buf)
 
   local lines = {}
+  toc_to_lnum = {}
   local highlights = {}
 
   local indent_size = vim.api.nvim_get_option_value("shiftwidth", {})
-  for _, entry in ipairs(entries) do
+  for i, entry in ipairs(entries) do
     -- local indent = string.rep("  ", entry.level - 1)
     local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
 
     table.insert(lines, indent .. entry.text)
+    toc_to_lnum[i] = entry.lnum -- 記錄對應關係
 
     -- 記錄 highlight 位置
     if entry.level == 1 then
@@ -202,15 +209,19 @@ function M.toggle()
 end
 
 function M.jump_to_entry(main_win)
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  local toc_buf = vim.api.nvim_win_get_buf(0)
-  local line = vim.api.nvim_buf_get_lines(toc_buf, row - 1, row, false)[1]
+  if not winid or not vim.api.nvim_win_is_valid(winid) then return end
 
-  -- 簡單方式：切回主視窗並跳轉（可後續優化）
+  local toc_row = vim.api.nvim_win_get_cursor(0)[1]
+  local target_lnum = toc_to_lnum[toc_row]
+
+  if not target_lnum then return end
+
+  -- 切換回主視窗並跳轉到精準行號
   vim.api.nvim_set_current_win(main_win)
+  vim.api.nvim_win_set_cursor(main_win, { target_lnum, 0 })
 
-  -- 這裡可再改進成精準匹配，目前先用搜尋
-  vim.fn.search(vim.trim(line), "w")
+  -- 可選：置中畫面
+  -- vim.cmd("normal! zz")
 end
 
 -- ==================== 自動命令 ====================
