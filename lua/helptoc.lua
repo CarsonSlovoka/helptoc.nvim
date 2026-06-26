@@ -21,11 +21,16 @@ local config = {
   width = 38,
   position = "right", -- "right" 或 "left"
   auto_refresh = true,
-  indent_size = "auto",
+
+  --- indent_size
+  --- Note: 如果使用tree會用:`─,│,─,│,┌,┐,┘` 等符號來輔助, 但如果用indent來當成fold的依據，這樣就會沒有效果了
+  indent_size = "auto", -- number, auto, tree
+
   highlight = {
     heading1 = "Title",
     heading2 = "Function",
     heading3 = "Label",
+    tree_lines = "Comment",
   }
 }
 
@@ -55,7 +60,7 @@ local function get_lsp_symbols(bufnr)
   end)
 end
 
--- ==================== Parser ====================
+-- ==================== render ====================
 function M.render_toc(entries)
   if not winid or not vim.api.nvim_win_is_valid(winid) then return end
   local toc_buf = vim.api.nvim_win_get_buf(winid)
@@ -63,23 +68,78 @@ function M.render_toc(entries)
   local lines = {}
   toc_to_lnum = {}
   local highlights = {}
-  local indent_size = config.indent_size == "auto" and
-      vim.api.nvim_get_option_value("shiftwidth", {}) or
-      config.indent_size
 
+  local use_tree = config.indent_size == "tree"
+  local indent_spaces = 0
+  if not use_tree then
+    indent_spaces = config.indent_size == "auto" and
+        vim.api.nvim_get_option_value("shiftwidth", {}) or
+        tonumber(config.indent_size) or 2
+  end
+
+  -- 1. 若使用 tree，預先計算每個節點是否為其所在分支的最後一個子節點
+  local is_last = {}
+  if use_tree then
+    for i, entry in ipairs(entries) do
+      is_last[i] = true
+      for j = i + 1, #entries do
+        if entries[j].level < entry.level then
+          break              -- 遇到更淺層（上層）的標題，代表當前分支已結束
+        elseif entries[j].level == entry.level then
+          is_last[i] = false -- 遇到同層級的下一個標題，所以不是最後一個
+          break
+        end
+      end
+    end
+  end
+
+  -- 2. 構建文字與計算 Highlighting 範圍
   for i, entry in ipairs(entries) do
-    local indent = string.rep(string.rep(" ", indent_size), entry.level - 1)
-    table.insert(lines, indent .. entry.text)
+    local prefix = "" --   ─   │   ─   │   ┌   ┐   ┘
+
+    if use_tree then
+      if entry.level > 1 then
+        -- 尋找對應層級 d 的祖先節點
+        for d = 1, entry.level - 1 do
+          local is_ancestor_last = true
+          for p = i - 1, 1, -1 do
+            if entries[p].level == d then
+              is_ancestor_last = is_last[p]
+              break
+            end
+          end
+          if d == entry.level - 1 then
+            -- 當前節點的前綴：判斷是否為分支的最後一個，畫分支符號
+            prefix = prefix .. (is_last[i] and "└─ " or "├─ ")
+          else
+            -- 更上層祖先的前綴：如果上層分支還沒結束，需要畫垂直延伸線
+            prefix = prefix .. (is_ancestor_last and "   " or "│  ")
+          end
+        end
+      end
+    else
+      -- 原始空白縮排邏輯
+      prefix = string.rep(string.rep(" ", indent_spaces), entry.level - 1)
+    end
+
+    table.insert(lines, prefix .. entry.text)
     toc_to_lnum[i] = entry.lnum
     lnum_to_toc[entry.lnum] = i
 
-    -- 根據層級設定 Highlight
-    local hl_group =
+    -- 判斷該層級文字的 Highlight
+    local text_hl_group =
         (entry.level == 1 and config.highlight.heading1) or
         (entry.level == 2 and config.highlight.heading2) or
         config.highlight.heading3 or "Normal"
-    table.insert(highlights, { #lines - 1, hl_group })
+
+    -- 記錄此行的 highlight 資訊 (使用 byte length 來精確切分前綴與文字)
+    table.insert(highlights, {
+      line = #lines - 1,
+      prefix_len = #prefix,
+      text_hl = text_hl_group
+    })
   end
+
 
   vim.bo[toc_buf].modifiable = true
   vim.api.nvim_buf_set_lines(toc_buf, 0, -1, false, lines)
@@ -88,14 +148,20 @@ function M.render_toc(entries)
   vim.api.nvim_buf_clear_namespace(toc_buf, ns_id, 0, -1)
 
   -- 套用 highlight
-  for _, hl in ipairs(highlights) do
+  for _, item in ipairs(highlights) do
+    -- 如果是 Tree 模式且有前綴符號，幫前綴套上 Comment 顏色
+    if use_tree and item.prefix_len > 0 then
+      vim.hl.range(toc_buf, ns_id, config.highlight.tree_lines, { item.line, 0 }, { item.line, item.prefix_len })
+    end
+
     -- vim.api.nvim_buf_add_highlight(toc_buf, ns_id, hl[2], hl[1], 0, -1) -- 此方法已棄用
-    vim.hl.range(toc_buf, ns_id, hl[2], { hl[1], 0 }, { hl[1], -1 })
+    vim.hl.range(toc_buf, ns_id, item.text_hl, { item.line, item.prefix_len }, { item.line, -1 })
     -- vim.hl.range(buf, ns_id, hl.highlight, { hl.line_num, hl.start_col }, { hl.line_num, hl.end_col }) -- ns_id不可以用0，一定要建立
   end
   vim.bo[toc_buf].modifiable = false
 end
 
+-- ==================== Parser ====================
 local function parse_markdown(bufnr)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local entries = {}
