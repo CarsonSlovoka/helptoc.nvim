@@ -22,17 +22,37 @@ local config = {
   position = "right", -- "right" 或 "left"
   auto_refresh = true,
 
-  --- indent_size
-  --- Note: 如果使用tree會用:`─,│,─,│,┌,┐,┘` 等符號來輔助, 但如果用indent來當成fold的依據，這樣就會沒有效果了
-  indent_size = "auto", -- number, auto, tree
+  indent_size = "tree", -- number, auto, tree
 
   highlight = {
     heading1 = "Title",
     heading2 = "Function",
     heading3 = "Label",
     tree_lines = "Comment",
-  }
+  },
+
+  foldlevel = 3, -- 如果設定太多，不直接異動foldlevel下用熱鍵H, L調整要很久
 }
+
+-- ==================== 折疊運算 (Fold Expression) ====================
+-- 定義全域函數供 Neovim 的 foldexpr 調用
+_G.__helptoc_foldexpr = function()
+  local lnum = vim.v.lnum
+  local buf = vim.api.nvim_get_current_buf()
+  local levels = vim.b[buf].helptoc_levels
+
+  if not levels then return "0" end
+
+  local cur_level = levels[lnum] or 0
+  local next_level = levels[lnum + 1] or 0
+
+  -- 如果下一行的層級更深，代表當前行是一個折疊區塊的起點 (使用 ">" 標記)
+  if next_level > cur_level then
+    return ">" .. cur_level
+  else
+    return tostring(cur_level)
+  end
+end
 
 -- ==================== LSP ====================
 -- 取得 LSP Symbols 的封裝
@@ -68,6 +88,7 @@ function M.render_toc(entries)
   local lines = {}
   toc_to_lnum = {}
   local highlights = {}
+  local fold_levels = {} -- 收集折疊層級
 
   local use_tree = config.indent_size == "tree"
   local indent_spaces = 0
@@ -125,6 +146,7 @@ function M.render_toc(entries)
     table.insert(lines, prefix .. entry.text)
     toc_to_lnum[i] = entry.lnum
     lnum_to_toc[entry.lnum] = i
+    fold_levels[i] = entry.level -- 記錄行號對應的真實層級
 
     -- 判斷該層級文字的 Highlight
     local text_hl_group =
@@ -140,7 +162,8 @@ function M.render_toc(entries)
     })
   end
 
-
+  -- Note: vim.b 與 vim.bo 不同. vim.bo 有指定的屬性不能隨意新增變數
+  vim.b[toc_buf].helptoc_levels = fold_levels -- 新增此buffer的屬性，供 foldexpr 使用.
   vim.bo[toc_buf].modifiable = true
   vim.api.nvim_buf_set_lines(toc_buf, 0, -1, false, lines)
 
@@ -350,6 +373,12 @@ function M.open()
   vim.wo[winid].number = false
   vim.wo[winid].relativenumber = false
 
+  -- 設定動態折疊 (Fold)
+  vim.wo[winid].foldmethod = "expr"
+  vim.wo[winid].foldexpr = "v:lua.__helptoc_foldexpr()"
+  vim.wo[winid].foldenable = true
+  vim.wo[winid].foldlevel = config.foldlevel -- 預設全展開
+
   -- Keymaps (當前buffer才有的keymap)
   local opts = { noremap = true, silent = true, buffer = toc_buf }
   vim.keymap.set("n", "<CR>", function() M.jump_to_entry(main_win) end, opts)
@@ -361,6 +390,17 @@ function M.open()
     vim.tbl_deep_extend("force", opts, { desc = 'Increase window width' }))
   vim.keymap.set('n', '-', '<cmd>vertical resize -2<cr>',
     vim.tbl_deep_extend("force", opts, { desc = 'Decrease window width' }))
+
+  -- 折疊層級控制 (H: 減少 foldlevel, L: 增加 foldlevel)
+  vim.keymap.set("n", "H", function()
+    local current_level = vim.wo[winid].foldlevel
+    vim.wo[winid].foldlevel = math.max(0, current_level - 1)
+  end, vim.tbl_deep_extend("force", opts, { desc = "Decrease Fold Level (Collapse)" }))
+
+  vim.keymap.set("n", "L", function()
+    local current_level = vim.wo[winid].foldlevel
+    vim.wo[winid].foldlevel = math.min(6, current_level + 1)
+  end, vim.tbl_deep_extend("force", opts, { desc = "Increase Fold Level (Expand)" }))
 
 
   M.refresh()
