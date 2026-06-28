@@ -411,6 +411,8 @@ function M.open()
 
 
   M.refresh()
+
+  vim.api.nvim_input("<C-w>pl") -- 回到前一個window, 使得TOC可以依據該文本來更新end
 end
 
 function M.close()
