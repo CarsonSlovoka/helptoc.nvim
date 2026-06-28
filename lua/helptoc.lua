@@ -9,6 +9,9 @@ local ns_id = vim.api.nvim_create_namespace("helptoc")
 local toc_to_lnum = {} -- { toc_row = main_lnum } -- 用來儲存 TOC 行號 → 原 buffer 行號 的對應表
 local lnum_to_toc = {} -- { main_lnum = toc_row } -- 反查表
 
+
+local sorted_lnums = {} -- sync_cursor 中使用
+
 local pattern = {
   "*.md", "*.markdown",
   "*/doc/*.txt",
@@ -443,6 +446,9 @@ function M.refresh()
     local entries = get_entries(main_buf)
     M.render_toc(entries)
   end
+
+  sorted_lnums = vim.tbl_keys(lnum_to_toc)
+  table.sort(sorted_lnums)
 end
 
 function M.toggle()
@@ -482,17 +488,23 @@ function M.sync_cursor()
   local main_lnum = vim.api.nvim_win_get_cursor(main_win)[1]
 
   -- 找最近的 TOC entry (處理游標在兩個標題之間的情況)
+  -- 二分搜尋找最大的 lnum <= main_lnum
   local target_toc_line = nil
-  local sorted_lnums = vim.tbl_keys(lnum_to_toc)
-  table.sort(sorted_lnums)
+  local left, right = 1, #sorted_lnums
+  -- local n = 0  -- 小的文件可能找3, 4次，很大的TOC, 差不多找7, 8次就能找到
+  while left <= right do
+    -- n = n + 1
+    local mid = math.floor((left + right) / 2)
+    local lnum = sorted_lnums[mid]
 
-  for _, lnum in ipairs(sorted_lnums) do
     if lnum <= main_lnum then
       target_toc_line = lnum_to_toc[lnum]
+      left = mid + 1 -- 繼續往右找更大的（更接近）
     else
-      break
+      right = mid - 1
     end
   end
+  -- print("找了 " .. n)
 
   if target_toc_line then
     vim.api.nvim_win_set_cursor(winid, { target_toc_line, 0 })
