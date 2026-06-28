@@ -50,3 +50,9 @@ local config = {
 | ✅      | help     | -    |                                  |
 | ✅      | sh, bash | -    | 僅function, 且都當成level 1      |
 | ✅      | lua      | ✅   |                                  |
+
+
+## TODO
+
+- [ ] 多window支持: 當前使用winid, bufid這些變數是單一的，所以當前最多不能在一個window使用. 也就是開兩個tab分別想在不同的md中都使用，就沒有辦法
+
