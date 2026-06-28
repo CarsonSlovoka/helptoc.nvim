@@ -40,6 +40,13 @@ local config = {
 
 ## 支前的filetype
 
-- [v] Markdown
-- [v] Help
-- [v] sh (僅function, 且都當成level 1)
+
+> [!NOTE] 當LSP寫 `-` 時不代表不能解析，只是使用自定的簡單方式來解析
+
+
+| Support | filetype | LSP  | Note                             |
+| ----    | ----     | ---- | ----                             |
+| ✅      | markdown | -    |                                  |
+| ✅      | help     | -    |                                  |
+| ✅      | sh, bash | -    | 僅function, 且都當成level 1      |
+| ✅      | lua      | ✅   |                                  |
