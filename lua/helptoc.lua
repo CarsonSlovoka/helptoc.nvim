@@ -29,6 +29,7 @@ local config = {
     heading2 = "Function",
     heading3 = "Label",
     tree_lines = "Comment",
+    cursor_line = nil, -- { link = "CursorLine" }, { bg = "#2f3e54" }
   },
 
   foldlevel = 3, -- 如果設定太多，不直接異動foldlevel下用熱鍵H, L調整要很久
@@ -181,6 +182,12 @@ function M.render_toc(entries)
     vim.hl.range(toc_buf, ns_id, item.text_hl, { item.line, item.prefix_len }, { item.line, -1 })
     -- vim.hl.range(buf, ns_id, hl.highlight, { hl.line_num, hl.start_col }, { hl.line_num, hl.end_col }) -- ns_id不可以用0，一定要建立
   end
+
+  if config.highlight.cursor_line then
+    vim.api.nvim_win_set_hl_ns(winid, ns_id)
+    vim.api.nvim_set_hl(ns_id, "CursorLine", config.highlight.cursor_line) -- Note: 如果想要用指定的ns_id，一定要用 nvim_win_set_hl_ns 或 nvim_set_hl_ns 先激活後使用才會有效
+  end
+
   vim.bo[toc_buf].modifiable = false
 end
 

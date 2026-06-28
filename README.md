@@ -16,6 +16,10 @@ local config = {
     heading2 = "Function",
     heading3 = "Label",
     tree_lines = "Comment",
+
+    cursor_line = nil,
+    -- cursor_line = { link = "CursorLine" }
+    -- cursor_line = cursor_line = { bg = vim.g.terminal_color_4 or "#00c6ff", fg = "#003b4f" }
   }
   foldlevel = 3,
 }
