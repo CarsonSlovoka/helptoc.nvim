@@ -415,6 +415,16 @@ function M.open()
 
   M.refresh()
 
+  -- autocmd
+  vim.api.nvim_create_autocmd("WinClosed", {
+    desc = "[Helptoc] Make sure: q will automatically close it so that it can be opened again next time",
+    -- pattern = pattern, -- 不能和buf一起使用
+    buf = bufid,
+    callback = function()
+      M.close()
+    end
+  })
+
   vim.api.nvim_input("<C-w>pl") -- 回到前一個window, 使得TOC可以依據該文本來更新end
 end
 
