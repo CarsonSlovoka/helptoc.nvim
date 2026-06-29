@@ -74,9 +74,17 @@ local function get_lsp_symbols(bufnr)
     local entries = {}
 
     local function process_symbols(list, depth)
+      local k = vim.lsp.protocol.SymbolKind
       for _, sym in ipairs(list) do
+        -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/ 搜尋: CompletionItemKind
+        -- https://github.com/microsoft/language-server-protocol/blob/ad04bde24d0c3850dcb6ec08e802f7e69c2ee5dc/_specifications/specification-3-16.md?plain=1#L4754-L4780
         -- 6: Method, 12: Function
-        if sym.kind == 6 or sym.kind == 12 then
+        -- if sym.kind == 6 or sym.kind == 12 then
+        if vim.tbl_contains({
+              k.Module, k.Namespace, k.Package, k.Class, k.Method, k.Property, k.Field, k.Constructor, k.Enum, k.Interface, k.Function,
+              k.Struct,
+              k.EnumMember,
+            }, sym.kind) then
           table.insert(entries, {
             lnum = sym.selectionRange.start.line + 1,
             level = depth,
