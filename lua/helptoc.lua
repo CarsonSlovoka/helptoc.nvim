@@ -532,7 +532,16 @@ function M.sync_cursor()
   end
   -- print("找了 " .. n)
 
-  if target_toc_line then
+  local line_count = vim.api.nvim_buf_line_count(bufid or 0)
+  if target_toc_line and target_toc_line > line_count then
+    -- 已經離開了視窗，可能用tab切到另一個窗口，而TOC不再該窗口，這樣去移動會遇到`Invalid cursor Line: out of range`的錯誤
+    -- 因此這種情況就直接關閉, 避免一直做無用的計算.
+    -- TODO: 如果日後有支持多窗口，就可以改善這問題
+    -- print("close")
+    M.close()
+    return
+  end
+  if target_toc_line and target_toc_line <= line_count then
     vim.api.nvim_win_set_cursor(winid, { target_toc_line, 0 })
 
     -- 可選：讓 TOC 視窗捲動一下，確保目標在視窗中間 -- Note: 如果 `vim.opt.scrolloff = 999` 已經是這樣了，那麼其實這個不設定也沒差
