@@ -16,10 +16,14 @@ local lnum_to_toc = {} -- { main_lnum = toc_row } -- 反查表
 local sorted_lnums = {} -- sync_cursor 中使用
 
 local pattern = {
-  "*.md", "*.markdown",
+  "*.*",
+  -- "*.md", "*.markdown",
   "*/doc/*.txt",
-  "*.sh", "*.bash",
-  "*.lua",
+  -- "*.sh", "*.bash",
+  -- "*.lua",
+  -- "*.go",
+  -- "*.rs",
+  -- "*.py"
 }
 
 -- ==================== 配置 ====================
@@ -452,7 +456,7 @@ function M.refresh()
   local ft = vim.bo[main_buf].filetype
 
   -- 如果是 Lua 且有 LSP client，走 LSP 流程
-  if ft == "lua" and #vim.lsp.get_clients({ bufnr = main_buf }) > 0 then
+  if #vim.lsp.get_clients({ bufnr = main_buf }) > 0 then
     -- Note: lsp 是異步的, 所以只能在裡面觸發render_toc
     get_lsp_symbols(main_buf)
   else

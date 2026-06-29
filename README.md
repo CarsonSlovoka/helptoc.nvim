@@ -48,12 +48,23 @@ local config = {
 > [!NOTE] 當LSP寫 `-` 時不代表不能解析，只是使用自定的簡單方式來解析
 
 
-| Support | filetype | LSP  | Note                             |
-| ----    | ----     | ---- | ----                             |
-| ✅      | markdown | -    |                                  |
-| ✅      | help     | -    |                                  |
-| ✅      | sh, bash | -    | 僅function, 且都當成level 1      |
-| ✅      | lua      | ✅   |                                  |
+| Support | filetype      | LSP  | Note                                            |
+| :--:    | ----          | :--: | ----                                            |
+| ✅      | markdown      | -    |                                                 |
+| ✅      | help          | -    |                                                 |
+| ✅      | sh, bash      | -    | 僅function, 且都當成level 1                     |
+| ✅      | lua           | ✅   |                                                 |
+| ✅      | rust          | ✅   |                                                 |
+| ✅      | go            | ✅   |                                                 |
+| ✅      | python        | ✅   |                                                 |
+| ✅      | swift         | ✅   |                                                 |
+| ✅      | javascript    | ✅   |                                                 |
+| ✅      | ...           | ✅   | 有lsp的都能使用                                 |
+
+
+> [!NOTE] 上面有註記LSP的項目，是有測試過，確定能使用且效果還可以的項目
+>
+> 至於其它的語言，其實只要有lsp支持，都能靠夠使用
 
 
 ## TODO
