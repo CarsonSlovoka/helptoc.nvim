@@ -22,6 +22,10 @@ local config = {
     -- cursor_line = cursor_line = { bg = vim.g.terminal_color_4 or "#00c6ff", fg = "#003b4f" }
   }
   foldlevel = 3,
+
+  enable = {
+    kind_icon = true, -- 預設啟用. 在名稱前加上圖標，輔助識別: 󰈙, 󰏒, 󰌗, 󰏖, 󰠱, 󰆧, 󰜢, 󰜢, 󰙅, 󰉺, 󰒓, 󰊕, 󰀫, 󰏿, 󰙅, 󰉺, , 󰆕, 󰅲
+  }
 }
 ```
 

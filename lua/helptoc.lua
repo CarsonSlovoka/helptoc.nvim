@@ -43,6 +43,10 @@ local config = {
   },
 
   foldlevel = 3, -- 如果設定太多，不直接異動foldlevel下用熱鍵H, L調整要很久
+
+  enable = {
+    kind_icon = true,
+  }
 }
 
 -- ==================== 折疊運算 (Fold Expression) ====================
@@ -66,6 +70,29 @@ _G.__helptoc_foldexpr = function()
 end
 
 -- ==================== LSP ====================
+
+local kind_icons = {
+  [vim.lsp.protocol.SymbolKind.File]          = "󰈙 ",
+  [vim.lsp.protocol.SymbolKind.Module]        = "󰏒 ",
+  [vim.lsp.protocol.SymbolKind.Namespace]     = "󰌗 ",
+  [vim.lsp.protocol.SymbolKind.Package]       = "󰏖 ",
+  [vim.lsp.protocol.SymbolKind.Class]         = "󰠱 ", -- C
+  [vim.lsp.protocol.SymbolKind.Method]        = "󰆧 ", -- m
+  [vim.lsp.protocol.SymbolKind.Property]      = "󰜢 ",
+  [vim.lsp.protocol.SymbolKind.Field]         = "󰜢 ",
+  [vim.lsp.protocol.SymbolKind.Constructor]   = "󰙅 ",
+  [vim.lsp.protocol.SymbolKind.Enum]          = "󰉺 ", -- E
+  [vim.lsp.protocol.SymbolKind.Interface]     = "󰒓 ", -- I
+  [vim.lsp.protocol.SymbolKind.Function]      = "󰊕 ", -- ƒ
+  [vim.lsp.protocol.SymbolKind.Variable]      = "󰀫 ",
+  [vim.lsp.protocol.SymbolKind.Constant]      = "󰏿 ",
+  [vim.lsp.protocol.SymbolKind.Struct]        = "󰙅 ", -- S
+  [vim.lsp.protocol.SymbolKind.EnumMember]    = "󰉺 ",
+  [vim.lsp.protocol.SymbolKind.Event]         = " ",
+  [vim.lsp.protocol.SymbolKind.Operator]      = "󰆕 ",
+  [vim.lsp.protocol.SymbolKind.TypeParameter] = "󰅲 ",
+}
+
 -- 取得 LSP Symbols 的封裝
 local function get_lsp_symbols(bufnr)
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
@@ -76,10 +103,6 @@ local function get_lsp_symbols(bufnr)
     local function process_symbols(list, depth)
       local k = vim.lsp.protocol.SymbolKind
       for _, sym in ipairs(list) do
-        -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/ 搜尋: CompletionItemKind
-        -- https://github.com/microsoft/language-server-protocol/blob/ad04bde24d0c3850dcb6ec08e802f7e69c2ee5dc/_specifications/specification-3-16.md?plain=1#L4754-L4780
-        -- 6: Method, 12: Function
-        -- if sym.kind == 6 or sym.kind == 12 then
         if vim.tbl_contains({
               k.Module, k.Namespace, k.Package, k.Class, k.Method, k.Property, k.Field, k.Constructor, k.Enum, k.Interface, k.Function,
               k.Struct,
@@ -88,14 +111,15 @@ local function get_lsp_symbols(bufnr)
           table.insert(entries, {
             lnum = sym.selectionRange.start.line + 1,
             level = depth,
-            text = sym.name
+            text = sym.name,
+            kind_icon = kind_icons[sym.kind] or ""
           })
         end
         if sym.children then process_symbols(sym.children, depth + 1) end
       end
     end
     process_symbols(result, 1)
-    M.render_toc(entries) -- 拿到資料後呼叫渲染
+    M.render_toc(entries)
   end)
 end
 
@@ -162,7 +186,11 @@ function M.render_toc(entries)
       prefix = string.rep(string.rep(" ", indent_spaces), entry.level - 1)
     end
 
-    table.insert(lines, prefix .. entry.text)
+    if config.enable.kind_icon then
+      table.insert(lines, prefix .. entry.kind_icon .. " " .. entry.text)
+    else
+      table.insert(lines, prefix .. entry.text)
+    end
     toc_to_lnum[i] = entry.lnum
     lnum_to_toc[entry.lnum] = i
     fold_levels[i] = entry.level -- 記錄行號對應的真實層級
@@ -234,6 +262,7 @@ local function parse_markdown(bufnr)
         level = #level - 1, -- # -> 1, ## -> 2
         text = text,
         raw = line,
+        kind_icon = "",
       })
     end
 
@@ -265,6 +294,7 @@ local function parse_help(bufnr)
           lnum = lnum,
           level = 2,
           text = text,
+          kind_icon = "",
         })
       end
     end
@@ -291,7 +321,7 @@ local function parse_bash(bufnr)
         lnum = lnum,
         level = 1, -- function 統一當作 level 1
         text = func_name,
-        -- text = "ƒ " .. func_name, -- 加符號區別 (可以考慮)
+        kind_icon = "",
       })
     end
   end
@@ -329,7 +359,8 @@ local function parse_lua(bufnr)
       table.insert(entries, {
         lnum = lnum,
         level = 1,
-        text = "λ " .. func_name, -- 用 λ 符號區別 Lua function
+        text = func_name,
+        kind_icon = "λ",
       })
     end
   end
