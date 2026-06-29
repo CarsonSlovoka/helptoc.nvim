@@ -1,6 +1,9 @@
 -- Markdown + Help 常駐 TOC 視窗
 
-local M = {}
+local group = vim.api.nvim_create_augroup("HelpToc", {})
+local M = {
+  group = group
+}
 
 local winid = nil
 local bufid = nil
@@ -359,7 +362,7 @@ function M.open()
   local main_win = vim.api.nvim_get_current_win()
   -- local main_buf = vim.api.nvim_get_current_buf()
 
-  local group = vim.api.nvim_create_augroup("HelpTocSync", { clear = true })
+  -- local group = vim.api.nvim_create_augroup("HelpTocSync", { clear = true })
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = group,
     buffer = vim.api.nvim_win_get_buf(main_win),
@@ -417,6 +420,7 @@ function M.open()
 
   -- autocmd
   vim.api.nvim_create_autocmd("WinClosed", {
+    group = group,
     desc = "[Helptoc] Make sure: q will automatically close it so that it can be opened again next time",
     -- pattern = pattern, -- 不能和buf一起使用
     buf = bufid,
