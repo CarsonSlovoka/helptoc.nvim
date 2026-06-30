@@ -311,6 +311,7 @@ local function parse_help(bufnr)
           lnum = lnum,
           level = 1,
           text = text,
+          kind_icon = { icon = "" },
         })
       end
       -- 次要標題（較短的大寫行）
