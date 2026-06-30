@@ -45,7 +45,8 @@ local config = {
   foldlevel = 3, -- 如果設定太多，不直接異動foldlevel下用熱鍵H, L調整要很久
 
   enable = {
-    kind_icon = true,
+    kind_icon = true,        -- 輔助識別: 󰈙, 󰏒, 󰌗, 󰏖, 󰠱, 󰆧, 󰜢, 󰜢, 󰙅, 󰉺, 󰒓, 󰊕, 󰀫, 󰏿, 󰙅, 󰉺, , 󰆕, 󰅲
+    symbol_highlight = true, -- 在kind_icon啟動時，是不是要針對不同的icon給上不同的顏色
   }
 }
 
@@ -69,30 +70,47 @@ _G.__helptoc_foldexpr = function()
   end
 end
 
--- ==================== LSP ====================
+-- ==================== Icon, Highlight ====================
+local function setup_highlights()
+  local hl = vim.api.nvim_set_hl
+
+  hl(ns_id, "SymbolKindClass", { fg = "#7aa2f7", bold = true })
+  hl(ns_id, "SymbolKindFunction", { fg = "#9ece6a", bold = true })
+  hl(ns_id, "SymbolKindMethod", { fg = "#bb9af7", bold = true })
+  hl(ns_id, "SymbolKindStruct", { fg = "#e0af68", bold = true })
+  hl(ns_id, "SymbolKindEnum", { fg = "#ff9e64", bold = true })
+  hl(ns_id, "SymbolKindInterface", { fg = "#73daca", bold = true })
+  hl(ns_id, "SymbolKindVariable", { fg = "#bb9af7" })
+  hl(ns_id, "SymbolKindField", { fg = "#73daca" })
+  hl(ns_id, "SymbolKindConstant", { fg = "#ff9e64", bold = true })
+  hl(ns_id, "SymbolKindModule", { fg = "#c0caf5" })
+  hl(ns_id, "SymbolKindNamespace", { fg = "#c0caf5" })
+end
 
 local kind_icons = {
-  [vim.lsp.protocol.SymbolKind.File]          = "󰈙 ",
-  [vim.lsp.protocol.SymbolKind.Module]        = "󰏒 ",
-  [vim.lsp.protocol.SymbolKind.Namespace]     = "󰌗 ",
-  [vim.lsp.protocol.SymbolKind.Package]       = "󰏖 ",
-  [vim.lsp.protocol.SymbolKind.Class]         = "󰠱 ", -- C
-  [vim.lsp.protocol.SymbolKind.Method]        = "󰆧 ", -- m
-  [vim.lsp.protocol.SymbolKind.Property]      = "󰜢 ",
-  [vim.lsp.protocol.SymbolKind.Field]         = "󰜢 ",
-  [vim.lsp.protocol.SymbolKind.Constructor]   = "󰙅 ",
-  [vim.lsp.protocol.SymbolKind.Enum]          = "󰉺 ", -- E
-  [vim.lsp.protocol.SymbolKind.Interface]     = "󰒓 ", -- I
-  [vim.lsp.protocol.SymbolKind.Function]      = "󰊕 ", -- ƒ
-  [vim.lsp.protocol.SymbolKind.Variable]      = "󰀫 ",
-  [vim.lsp.protocol.SymbolKind.Constant]      = "󰏿 ",
-  [vim.lsp.protocol.SymbolKind.Struct]        = "󰙅 ", -- S
-  [vim.lsp.protocol.SymbolKind.EnumMember]    = "󰉺 ",
-  [vim.lsp.protocol.SymbolKind.Event]         = " ",
-  [vim.lsp.protocol.SymbolKind.Operator]      = "󰆕 ",
-  [vim.lsp.protocol.SymbolKind.TypeParameter] = "󰅲 ",
+  [vim.lsp.protocol.SymbolKind.File]          = { icon = "󰈙", hl = "SymbolKindFile" },
+  [vim.lsp.protocol.SymbolKind.Module]        = { icon = "󰏒", hl = "SymbolKindModule" },
+  [vim.lsp.protocol.SymbolKind.Namespace]     = { icon = "󰌗", hl = "SymbolKindNamespace" },
+  [vim.lsp.protocol.SymbolKind.Package]       = { icon = "󰏖", hl = "SymbolKindPackage" },
+  [vim.lsp.protocol.SymbolKind.Class]         = { icon = "󰠱", hl = "SymbolKindClass" }, --C
+  [vim.lsp.protocol.SymbolKind.Method]        = { icon = "󰆧", hl = "SymbolKindMethod" }, --m
+  [vim.lsp.protocol.SymbolKind.Property]      = { icon = "󰜢", hl = "SymbolKindProperty" },
+  [vim.lsp.protocol.SymbolKind.Field]         = { icon = "󰜢", hl = "SymbolKindField" },
+  [vim.lsp.protocol.SymbolKind.Constructor]   = { icon = "󰙅", hl = "SymbolKindConstructor" },
+  [vim.lsp.protocol.SymbolKind.Enum]          = { icon = "󰉺", hl = "SymbolKindEnum" }, --E
+  [vim.lsp.protocol.SymbolKind.Interface]     = { icon = "󰒓", hl = "SymbolKindInterface" }, --I
+  [vim.lsp.protocol.SymbolKind.Function]      = { icon = "󰊕", hl = "SymbolKindFunction" }, --ƒ
+  [vim.lsp.protocol.SymbolKind.Variable]      = { icon = "󰀫", hl = "SymbolKindVariable" },
+  [vim.lsp.protocol.SymbolKind.Constant]      = { icon = "󰏿", hl = "SymbolKindConstant" },
+  [vim.lsp.protocol.SymbolKind.Struct]        = { icon = "󰙅", hl = "SymbolKindStruct" }, --S
+  [vim.lsp.protocol.SymbolKind.EnumMember]    = { icon = "󰉺", hl = "SymbolKindEnumMember" },
+  [vim.lsp.protocol.SymbolKind.Event]         = { icon = "", hl = "SymbolKindEvent" },
+  [vim.lsp.protocol.SymbolKind.Operator]      = { icon = "󰆕", hl = "SymbolKindOperator" },
+  [vim.lsp.protocol.SymbolKind.TypeParameter] = { icon = "󰅲", hl = "SymbolKindTypeParameter" },
 }
 
+
+-- ==================== LSP ====================
 -- 取得 LSP Symbols 的封裝
 local function get_lsp_symbols(bufnr)
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
@@ -112,7 +130,7 @@ local function get_lsp_symbols(bufnr)
             lnum = sym.selectionRange.start.line + 1,
             level = depth,
             text = sym.name,
-            kind_icon = kind_icons[sym.kind] or ""
+            kind_icon = kind_icons[sym.kind] or { icon = "" }
           })
         end
         if sym.children then process_symbols(sym.children, depth + 1) end
@@ -187,7 +205,7 @@ function M.render_toc(entries)
     end
 
     if config.enable.kind_icon then
-      table.insert(lines, prefix .. entry.kind_icon .. " " .. entry.text)
+      table.insert(lines, prefix .. entry.kind_icon.icon .. " " .. entry.text)
     else
       table.insert(lines, prefix .. entry.text)
     end
@@ -205,7 +223,8 @@ function M.render_toc(entries)
     table.insert(highlights, {
       line = #lines - 1,
       prefix_len = #prefix,
-      text_hl = text_hl_group
+      text_hl = text_hl_group,
+      kind_icon = config.enable.kind_icon and entry.kind_icon or {},
     })
   end
 
@@ -227,6 +246,14 @@ function M.render_toc(entries)
     -- vim.api.nvim_buf_add_highlight(toc_buf, ns_id, hl[2], hl[1], 0, -1) -- 此方法已棄用
     vim.hl.range(toc_buf, ns_id, item.text_hl, { item.line, item.prefix_len }, { item.line, -1 })
     -- vim.hl.range(buf, ns_id, hl.highlight, { hl.line_num, hl.start_col }, { hl.line_num, hl.end_col }) -- ns_id不可以用0，一定要建立
+
+    -- 再往回設定kind_icon的顏色
+    if config.enable.symbol_highlight and item.kind_icon.hl then
+      vim.hl.range(toc_buf, ns_id, item.kind_icon.hl,
+        { item.line, item.prefix_len },
+        { item.line, item.prefix_len + #(item.kind_icon and item.kind_icon.icon or "") }
+      )
+    end
   end
 
   if config.highlight.cursor_line then
@@ -262,7 +289,7 @@ local function parse_markdown(bufnr)
         level = #level - 1, -- # -> 1, ## -> 2
         text = text,
         raw = line,
-        kind_icon = "",
+        kind_icon = { icon = "" },
       })
     end
 
@@ -294,7 +321,7 @@ local function parse_help(bufnr)
           lnum = lnum,
           level = 2,
           text = text,
-          kind_icon = "",
+          kind_icon = { icon = "" },
         })
       end
     end
@@ -321,7 +348,7 @@ local function parse_bash(bufnr)
         lnum = lnum,
         level = 1, -- function 統一當作 level 1
         text = func_name,
-        kind_icon = "",
+        kind_icon = { icon = "" },
       })
     end
   end
@@ -360,7 +387,7 @@ local function parse_lua(bufnr)
         lnum = lnum,
         level = 1,
         text = func_name,
-        kind_icon = "λ",
+        kind_icon = kind_icons[vim.lsp.protocol.SymbolKind.Function],
       })
     end
   end
@@ -459,6 +486,9 @@ function M.open()
   end, vim.tbl_deep_extend("force", opts, { desc = "Increase Fold Level (Expand)" }))
 
 
+  if config.enable.symbol_highlight then
+    setup_highlights()
+  end
   M.refresh()
 
   -- autocmd

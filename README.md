@@ -25,6 +25,7 @@ local config = {
 
   enable = {
     kind_icon = true, -- 預設啟用. 在名稱前加上圖標，輔助識別: 󰈙, 󰏒, 󰌗, 󰏖, 󰠱, 󰆧, 󰜢, 󰜢, 󰙅, 󰉺, 󰒓, 󰊕, 󰀫, 󰏿, 󰙅, 󰉺, , 󰆕, 󰅲
+    symbol_highlight = true, -- 在kind_icon啟動時，是不是要針對不同的icon給上不同的顏色
   }
 }
 ```
