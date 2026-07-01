@@ -47,7 +47,33 @@ local config = {
   enable = {
     kind_icon = true,        -- 輔助識別: 󰈙, 󰏒, 󰌗, 󰏖, 󰠱, 󰆧, 󰜢, 󰜢, 󰙅, 󰉺, 󰒓, 󰊕, 󰀫, 󰏿, 󰙅, 󰉺, , 󰆕, 󰅲
     symbol_highlight = true, -- 在kind_icon啟動時，是不是要針對不同的icon給上不同的顏色
-  }
+  },
+
+  lsp_kinds = {
+    -- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/ 搜尋: CompletionItemKind
+    -- https://github.com/microsoft/language-server-protocol/blob/ad04bde24d0c3850dcb6ec08e802f7e69c2ee5dc/_specifications/specification-3-16.md?plain=1#L4754-L4780
+    vim.lsp.protocol.SymbolKind.Module,
+    vim.lsp.protocol.SymbolKind.Namespace,
+    vim.lsp.protocol.SymbolKind.Package,
+    vim.lsp.protocol.SymbolKind.Class,
+    vim.lsp.protocol.SymbolKind.Method,
+    vim.lsp.protocol.SymbolKind.Property,
+    vim.lsp.protocol.SymbolKind.Field,
+    vim.lsp.protocol.SymbolKind.Constructor,
+    vim.lsp.protocol.SymbolKind.Enum,
+    vim.lsp.protocol.SymbolKind.Interface,
+    vim.lsp.protocol.SymbolKind.Function,
+
+    vim.lsp.protocol.SymbolKind.Constant,
+
+    -- 👇這幾個滿多的呈現出來有好有壞(可能太雜)  可以用篩選的方式
+    -- vim.lsp.protocol.SymbolKind.Array,
+    -- vim.lsp.protocol.SymbolKind.Object,
+    -- vim.lsp.protocol.SymbolKind.Key,
+
+    vim.lsp.protocol.SymbolKind.EnumMember,
+    vim.lsp.protocol.SymbolKind.Struct,
+  },
 }
 
 -- ==================== 折疊運算 (Fold Expression) ====================
@@ -144,20 +170,13 @@ local kind_icons = {
 -- 取得 LSP Symbols 的封裝
 local function get_lsp_symbols(bufnr)
   local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
-  vim.lsp.buf_request(bufnr, "textDocument/documentSymbol", params, function(err, result, ctx, config)
+  vim.lsp.buf_request(bufnr, "textDocument/documentSymbol", params, function(err, result, ctx, _config)
     if err or not result then return end
     local entries = {}
 
     local function process_symbols(list, depth)
-      local k = vim.lsp.protocol.SymbolKind
       for _, sym in ipairs(list) do
-        if vim.tbl_contains({
-              k.Module, k.Namespace, k.Package, k.Class, k.Method, k.Property, k.Field, k.Constructor, k.Enum, k.Interface, k.Function,
-              k.Constant,
-              k.Array, k.Object, k.Key, -- 這幾個滿多的呈現出來有好有壞(可能太雜)
-              k.EnumMember,
-              k.Struct,
-            }, sym.kind) then
+        if vim.tbl_contains(config.lsp_kinds, sym.kind) then
           table.insert(entries, {
             lnum = sym.selectionRange.start.line + 1,
             level = depth,
@@ -666,19 +685,31 @@ function M.setup(opts)
     pattern = pattern,
     callback = function()
       vim.api.nvim_buf_create_user_command(0, 'Helptoc', function(args)
-          if args.fargs[1] == "open" then
+          local cmd = args.fargs[1]
+          if cmd == "open" then
             M.open()
-          elseif args.fargs[1] == "close" then
+          elseif cmd == "close" then
             M.close()
+          elseif cmd == "kinds" and args.fargs[2] then
+            -- 允許輸入 :Helptoc kinds 6,12,14
+            local new_kinds = {}
+            for num_str in args.fargs[2]:gmatch("%d+") do
+              table.insert(new_kinds, tonumber(num_str))
+            end
+            if #new_kinds > 0 then
+              config.lsp_kinds = new_kinds
+              M.refresh()
+            end
           else
             M.toggle()
           end
         end,
         {
-          desc = "Open/close the HelpTOC resident window",
-          nargs = "?",
-          complete = function(arg_lead)
-            return vim.fn.matchfuzzy({ "open", "close" }, arg_lead)
+          desc = "Control HelpTOC window",
+          nargs = "*",
+          complete = function(a)
+            local cmp_list = { "open", "close", "kinds" }
+            return #a > 0 and vim.fn.matchfuzzy(cmp_list, a) or cmp_list
           end,
         })
     end,

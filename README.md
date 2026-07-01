@@ -27,6 +27,14 @@ local config = {
     kind_icon = true, -- 預設啟用. 在名稱前加上圖標，輔助識別: 󰈙, 󰏒, 󰌗, 󰏖, 󰠱, 󰆧, 󰜢, 󰜢, 󰙅, 󰉺, 󰒓, 󰊕, 󰀫, 󰏿, 󰙅, 󰉺, , 󰆕, 󰅲
     symbol_highlight = true, -- 在kind_icon啟動時，是不是要針對不同的icon給上不同的顏色
   }
+  lsp_kinds = {
+    -- https://github.com/microsoft/language-server-protocol/blob/ad04bde24d0c3850dcb6ec08e802f7e69c2ee5dc/_specifications/specification-3-16.md?plain=1#L4754-L4780
+    -- ...
+    vim.lsp.protocol.SymbolKind.Property,
+    -- ...
+    vim.lsp.protocol.SymbolKind.Function,
+    -- ...
+  }
 }
 ```
 
