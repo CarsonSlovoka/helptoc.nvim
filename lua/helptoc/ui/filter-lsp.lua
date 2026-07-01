@@ -11,8 +11,14 @@ local config = {
 ---@param cb function 需要自定選擇後的行為
 function M.open_filter_ui(lsp_kinds, cb)
   local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].buftype = "nofile"
+
+  -- 將 buftype 設為 acwrite，這允許我們攔截 :w 指令
+  -- vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].buftype = "acwrite"
   vim.bo[buf].bufhidden = "wipe"
+
+  -- 給定一個虛擬檔名（加上 buf id 避免名稱衝突），否則 :w 會報錯 "No file name"
+  vim.api.nvim_buf_set_name(buf, "HelpTOC_Filter_" .. buf)
 
   -- 建立當前選取狀態的快速查詢表
   local selected = {}
@@ -23,11 +29,14 @@ function M.open_filter_ui(lsp_kinds, cb)
   local lines = {
     "# LSP Symbols filter settings",
     "# ---------------------------------------------",
-    "# Operation tips:",
+    "# Operation tips",
     "# <CR> or <Space> : Switch the check state",
-    "# q or <Esc> : Save settings and re-render",
+    "# q or :w         : apply settings and close window",
+    "# <Esc>           : Abandon changes and close",
     "# ---------------------------------------------",
-    ""
+    "",
+    -- "# :w           : Apply settings (save but don't close)", 目前沒有辦法即時刷新TOC, 要到回到原始文件才可以，所以這樣也沒辦法preview, 不如不要
+
   }
 
   -- 將選項依序印出
@@ -51,9 +60,10 @@ function M.open_filter_ui(lsp_kinds, cb)
 
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
+  vim.bo[buf].modified = false -- 初始化為「未修改」狀態
 
   -- 設定浮動視窗位置（置中）
-  local width = 45
+  local width = 65
   local height = #lines + 1
   local win = vim.api.nvim_open_win(buf, true, {
     relative = "editor",
@@ -97,14 +107,16 @@ function M.open_filter_ui(lsp_kinds, cb)
       vim.bo[buf].modifiable = true
       vim.api.nvim_buf_set_lines(buf, r - 1, r, false, { new_line })
       vim.bo[buf].modifiable = false
+      vim.bo[buf].modified = true -- 觸發已修改狀態 (標籤頁會顯示 + 號)
     end
   end
 
-  vim.keymap.set('n', '<CR>', toggle, { buffer = buf, silent = true })
-  vim.keymap.set('n', '<Space>', toggle, { buffer = buf, silent = true })
+  local opts = { buffer = buf, silent = true }
+  vim.keymap.set('n', '<CR>', toggle, opts)
+  vim.keymap.set('n', '<Space>', toggle, opts)
 
-  -- 綁定儲存並離開的按鍵
-  local function apply_and_close()
+  -- 儲存設定
+  local function apply_settings()
     local new_kinds = {}
     local all_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
@@ -121,11 +133,37 @@ function M.open_filter_ui(lsp_kinds, cb)
     end
 
     cb(new_kinds)
+    if #new_kinds > 0 then
+      vim.bo[buf].modified = false -- 存檔成功，清除修改標記
+      return true
+    end
+    return false
+  end
+
+  -- 攔截 :w 與 :wq (BufWriteCmd)
+  vim.api.nvim_create_autocmd("BufWriteCmd", {
+    buffer = buf,
+    callback = function()
+      apply_settings()
+      vim.api.nvim_win_close(win, true) -- 目前沒辦法preview, 所以儲完就一律關閉
+    end
+  })
+
+  local function close_ui(save)
+    if save then
+      -- 若要求儲存但失敗(例如全不選)，則中斷並保持視窗開啟
+      if not apply_settings() then return end
+    end
     vim.api.nvim_win_close(win, true)
   end
 
-  vim.keymap.set('n', 'q', apply_and_close, { buffer = buf, silent = true })
-  vim.keymap.set('n', '<Esc>', apply_and_close, { buffer = buf, silent = true })
+  -- q = 套用並關閉
+  vim.keymap.set('n', 'q', function() close_ui(true) end,
+    vim.tbl_extend("force", opts, { desc = "Save and Close" }))
+
+  -- <Esc> = 不存檔直接關閉 (放棄變更)
+  vim.keymap.set('n', '<Esc>', function() close_ui(false) end,
+    vim.tbl_extend("force", opts, { desc = "Discard and Close" }))
 end
 
 function M.setup(opts)
