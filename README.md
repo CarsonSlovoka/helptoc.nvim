@@ -38,6 +38,26 @@ local config = {
 }
 ```
 
+### 其它設定
+
+#### lsp filter UI
+
+如果check_style設定為`emoji`勾選會用
+
+- ✅
+- 🔳
+
+而數值是其它的就會用來表示
+
+- `[v]`
+- `[ ]`
+
+```lua
+require("helptoc.ui.filter-lsp").setup({
+  check_style = "emoji"
+})
+```
+
 ## command
 
 - `:Helptoc`

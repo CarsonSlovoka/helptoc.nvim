@@ -2,6 +2,10 @@ local M = {}
 
 local lsp_kinds_map = require("helptoc.lsp").kinds_map
 
+local config = {
+  check_style = "emoji"
+}
+
 
 ---@param lsp_kinds table 當前選擇的內容
 ---@param cb function 需要自定選擇後的行為
@@ -27,9 +31,14 @@ function M.open_filter_ui(lsp_kinds, cb)
   }
 
   -- 將選項依序印出
+  local mark
   for i = 1, 26 do
     if lsp_kinds_map[i] then
-      local mark = selected[i] and "[x]" or "[ ]"
+      if config.check_style == "emoji" then
+        mark = selected[i] and "✅" or "🔳"
+      else
+        mark = selected[i] and "[v]" or "[ ]"
+      end
       -- 排版：
       -- [x]  1 = 󰈙 File,
       -- [ ] 26 = 󰅲 TypeParameter
@@ -58,16 +67,30 @@ function M.open_filter_ui(lsp_kinds, cb)
     title_pos = "center",
   })
 
+  local ns_id = vim.api.nvim_create_namespace("helptoc")
+  vim.api.nvim_win_set_hl_ns(win, ns_id)
+  vim.api.nvim_set_hl(ns_id, "CursorLine", { bg = vim.g.terminal_color_4 or "#00c6ff", fg = "#003b4f" }) -- Note: 如果用✅, 🔳 游標可能會被檔住, 所以一定要CursorLine來輔助
+  vim.wo.cursorline = true
+
   -- 綁定切換按鍵 (Toggle)
   local function toggle()
     local r = vim.api.nvim_win_get_cursor(win)[1]
     local line = vim.api.nvim_buf_get_lines(buf, r - 1, r, false)[1]
 
     local new_line = nil
-    if line:match("^%[% %]") then
-      new_line = line:gsub("^%[% %]", "[x]")
-    elseif line:match("^%[x%]") then
-      new_line = line:gsub("^%[x%]", "[ ]")
+
+    if config.check_style == "emoji" then
+      if line:match("^🔳") then
+        new_line = line:gsub("^🔳", "✅")
+      elseif line:match("^✅") then
+        new_line = line:gsub("^✅", "🔳")
+      end
+    else
+      if line:match("^%[% %]") then
+        new_line = line:gsub("^%[% %]", "[x]")
+      elseif line:match("^%[v%]") then
+        new_line = line:gsub("^%[v%]", "[ ]")
+      end
     end
 
     if new_line then
@@ -85,9 +108,13 @@ function M.open_filter_ui(lsp_kinds, cb)
     local new_kinds = {}
     local all_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
+    local pattern = config.check_style == "emoji" and
+        "^✅%s+(%d+)" or
+        "^%[v%]%s+(%d+)"
+
     for _, l in ipairs(all_lines) do
       -- 正則匹配：抓取以 "[x]" 開頭的行，並提取後面的數字
-      local id_str = l:match("^%[x%]%s+(%d+)")
+      local id_str = l:match(pattern)
       if id_str then
         table.insert(new_kinds, tonumber(id_str))
       end
@@ -99,6 +126,10 @@ function M.open_filter_ui(lsp_kinds, cb)
 
   vim.keymap.set('n', 'q', apply_and_close, { buffer = buf, silent = true })
   vim.keymap.set('n', '<Esc>', apply_and_close, { buffer = buf, silent = true })
+end
+
+function M.setup(opts)
+  config = vim.tbl_deep_extend("force", config, opts)
 end
 
 return M
