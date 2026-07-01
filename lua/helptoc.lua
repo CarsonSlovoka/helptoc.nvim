@@ -132,38 +132,7 @@ local function setup_highlights()
   hl(ns_id, "SymbolKindTypeParameter", { fg = "#73daca", bold = true })
 end
 
-local kind_icons = {
-  [vim.lsp.protocol.SymbolKind.File]          = { icon = "󰈙", hl = "SymbolKindFile" },
-  [vim.lsp.protocol.SymbolKind.Module]        = { icon = "󰏒", hl = "SymbolKindModule" },
-  [vim.lsp.protocol.SymbolKind.Namespace]     = { icon = "󰌗", hl = "SymbolKindNamespace" },
-  [vim.lsp.protocol.SymbolKind.Package]       = { icon = "󰏖", hl = "SymbolKindPackage" },
-  [vim.lsp.protocol.SymbolKind.Class]         = { icon = "󰠱", hl = "SymbolKindClass" }, --C
-  [vim.lsp.protocol.SymbolKind.Method]        = { icon = "󰆧", hl = "SymbolKindMethod" }, --m
-  [vim.lsp.protocol.SymbolKind.Property]      = { icon = "󰜢", hl = "SymbolKindProperty" },
-  [vim.lsp.protocol.SymbolKind.Field]         = { icon = "󰜢", hl = "SymbolKindField" },
-  [vim.lsp.protocol.SymbolKind.Constructor]   = { icon = "󰙅", hl = "SymbolKindConstructor" },
-  [vim.lsp.protocol.SymbolKind.Enum]          = { icon = "󰉺", hl = "SymbolKindEnum" }, --E
-  [vim.lsp.protocol.SymbolKind.Interface]     = { icon = "󰒓", hl = "SymbolKindInterface" }, --I
-  [vim.lsp.protocol.SymbolKind.Function]      = { icon = "󰊕", hl = "SymbolKindFunction" }, --ƒ
-  [vim.lsp.protocol.SymbolKind.Variable]      = { icon = "󰀫", hl = "SymbolKindVariable" },
-  [vim.lsp.protocol.SymbolKind.Constant]      = { icon = "󰏿", hl = "SymbolKindConstant" },
-
-  [vim.lsp.protocol.SymbolKind.String]        = { icon = "󰅳", hl = "SymbolKindString" },
-  [vim.lsp.protocol.SymbolKind.Number]        = { icon = "󰎠", hl = "SymbolKindNumber" },
-  [vim.lsp.protocol.SymbolKind.Boolean]       = { icon = "󰨙", hl = "SymbolKindBoolean" },
-
-  [vim.lsp.protocol.SymbolKind.Array]         = { icon = "󰅨", hl = "SymbolKindArray" },
-  [vim.lsp.protocol.SymbolKind.Object]        = { icon = "󰙅", hl = "SymbolKindObject" },
-  [vim.lsp.protocol.SymbolKind.Key]           = { icon = "󰌆", hl = "SymbolKindKey" },
-
-  [vim.lsp.protocol.SymbolKind.Null]          = { icon = "󰟢", hl = "SymbolKindNull" },
-
-  [vim.lsp.protocol.SymbolKind.EnumMember]    = { icon = "󰉺", hl = "SymbolKindEnumMember" },
-  [vim.lsp.protocol.SymbolKind.Struct]        = { icon = "󰙅", hl = "SymbolKindStruct" }, --S
-  [vim.lsp.protocol.SymbolKind.Event]         = { icon = "", hl = "SymbolKindEvent" },
-  [vim.lsp.protocol.SymbolKind.Operator]      = { icon = "󰆕", hl = "SymbolKindOperator" },
-  [vim.lsp.protocol.SymbolKind.TypeParameter] = { icon = "󰅲", hl = "SymbolKindTypeParameter" },
-}
+local lsp_kinds_map = require("helptoc.lsp").kinds_map
 
 
 -- ==================== LSP ====================
@@ -181,7 +150,7 @@ local function get_lsp_symbols(bufnr)
             lnum = sym.selectionRange.start.line + 1,
             level = depth,
             text = sym.name,
-            kind_icon = kind_icons[sym.kind] or { icon = "" }
+            kind_icon = lsp_kinds_map[sym.kind] or { icon = "" }
           })
         end
         if sym.children then process_symbols(sym.children, depth + 1) end
@@ -439,7 +408,7 @@ local function parse_lua(bufnr)
         lnum = lnum,
         level = 1,
         text = func_name,
-        kind_icon = kind_icons[vim.lsp.protocol.SymbolKind.Function],
+        kind_icon = lsp_kinds_map[vim.lsp.protocol.SymbolKind.Function],
       })
     end
   end

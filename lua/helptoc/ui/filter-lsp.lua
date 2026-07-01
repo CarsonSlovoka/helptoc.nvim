@@ -1,37 +1,9 @@
 local M = {}
 
-local lsp_kinds_map = {
-  -- https://github.com/microsoft/language-server-protocol/blob/ad04bde24d0c3850dcb6ec08e802f7e69c2ee5dc/_specifications/specification-3-16.md?plain=1#L4754-L4780
-  [vim.lsp.protocol.SymbolKind.File] = 'File',
-  [vim.lsp.protocol.SymbolKind.Module] = 'Module',
-  [vim.lsp.protocol.SymbolKind.Namespace] = 'Namespace',
-  [vim.lsp.protocol.SymbolKind.Package] = 'Package',
-  [vim.lsp.protocol.SymbolKind.Class] = 'Class',
-  [vim.lsp.protocol.SymbolKind.Method] = 'Method',
-  [vim.lsp.protocol.SymbolKind.Property] = 'Property',
-  [vim.lsp.protocol.SymbolKind.Field] = 'Field',
-  [vim.lsp.protocol.SymbolKind.Constructor] = 'Constructor',
-  [vim.lsp.protocol.SymbolKind.Enum] = 'Enum',
-  [vim.lsp.protocol.SymbolKind.Interface] = 'Interface',
-  [vim.lsp.protocol.SymbolKind.Function] = 'Function',
-  [vim.lsp.protocol.SymbolKind.Variable] = 'Variable',
-  [vim.lsp.protocol.SymbolKind.Constant] = 'Constant',
-  [vim.lsp.protocol.SymbolKind.String] = 'String',
-  [vim.lsp.protocol.SymbolKind.Number] = 'Number',
-  [vim.lsp.protocol.SymbolKind.Boolean] = 'Boolean',
-  [vim.lsp.protocol.SymbolKind.Array] = 'Array',
-  [vim.lsp.protocol.SymbolKind.Object] = 'Object',
-  [vim.lsp.protocol.SymbolKind.Key] = 'Key',
-  [vim.lsp.protocol.SymbolKind.Null] = 'Null',
-  [vim.lsp.protocol.SymbolKind.EnumMember] = 'EnumMember',
-  [vim.lsp.protocol.SymbolKind.Struct] = 'Struct',
-  [vim.lsp.protocol.SymbolKind.Event] = 'Event',
-  [vim.lsp.protocol.SymbolKind.Operator] = 'Operator',
-  [vim.lsp.protocol.SymbolKind.TypeParameter] = 'TypeParameter',
-}
+local lsp_kinds_map = require("helptoc.lsp").kinds_map
 
 
----@param lsp_kinds table
+---@param lsp_kinds table 當前選擇的內容
 ---@param cb function 需要自定選擇後的行為
 function M.open_filter_ui(lsp_kinds, cb)
   local buf = vim.api.nvim_create_buf(false, true)
@@ -47,7 +19,7 @@ function M.open_filter_ui(lsp_kinds, cb)
   local lines = {
     "# LSP Symbols filter settings",
     "# ---------------------------------------------",
-    "# 操作提示：",
+    "# Operation tips:",
     "# <CR> or <Space> : Switch the check state",
     "# q or <Esc> : Save settings and re-render",
     "# ---------------------------------------------",
@@ -58,8 +30,13 @@ function M.open_filter_ui(lsp_kinds, cb)
   for i = 1, 26 do
     if lsp_kinds_map[i] then
       local mark = selected[i] and "[x]" or "[ ]"
-      -- 排版：[x]  1 = File, [ ] 26 = TypeParameter
-      table.insert(lines, string.format("%s %-2d = %s", mark, i, lsp_kinds_map[i]))
+      -- 排版：
+      -- [x]  1 = 󰈙 File,
+      -- [ ] 26 = 󰅲 TypeParameter
+      table.insert(lines, string.format("%s %-2d = %s %s",
+        mark, i,
+        lsp_kinds_map[i].icon, lsp_kinds_map[i].name
+      ))
     end
   end
 
