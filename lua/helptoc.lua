@@ -538,6 +538,40 @@ function M.open()
   end, vim.tbl_deep_extend("force", opts, { desc = "Increase Fold Level (Expand)" }))
 
 
+  -- LSP Kinds 的熱鍵
+  vim.keymap.set("n", "<leader>f", function()
+      local current_kinds = table.concat(config.lsp_kinds, ", ")
+
+      vim.ui.input({
+        prompt = "Enter LSP Kinds (comma-separated, e.g. 6,12,14): ",
+        default = current_kinds
+      }, function(input)
+        -- 如果使用者按 Esc 取消，input 會是 nil
+        if not input then
+          return
+        end
+
+        local new_kinds = {}
+        -- 利用正則表達式抓取字串中的所有數字
+        for num_str in input:gmatch("%d+") do
+          table.insert(new_kinds, tonumber(num_str))
+        end
+        print(vim.inspect(new_kinds))
+
+        if #new_kinds > 0 then
+          config.lsp_kinds = new_kinds
+          M.refresh()
+          vim.api.nvim_input("<C-w>p")
+          vim.notify("LSP Kinds updated to: " .. table.concat(new_kinds, ", "), vim.log.levels.INFO)
+        else
+          vim.notify("Invalid input. Kinds must be numbers.", vim.log.levels.WARN)
+        end
+      end)
+    end,
+    vim.tbl_deep_extend("force", opts, { desc = "Filter LSP Symbol Kinds" })
+  )
+
+
   if config.enable.symbol_highlight then
     setup_highlights()
   end
