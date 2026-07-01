@@ -539,7 +539,7 @@ function M.open()
   --   end,
   --   vim.tbl_deep_extend("force", opts, { desc = "Filter LSP Symbol Kinds" })
   -- )
-  vim.keymap.set("n", "<leader>f", function()
+  vim.keymap.set("n", "F", function()
       require("helptoc.ui.filter-lsp").open_filter_ui(config.lsp_kinds, function(new_kinds)
         if #new_kinds > 0 then
           config.lsp_kinds = new_kinds

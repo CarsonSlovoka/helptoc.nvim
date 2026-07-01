@@ -54,7 +54,7 @@ local config = {
 - `H`: Decrease Fold Level (Collapse)
 - `L`: Increase Fold Level (Expand)
 
-- `<leader>f`: Filter LSP Symbol Kinds
+- `F`: Filter LSP Symbol Kinds
 
 
 ## 支前的filetype
