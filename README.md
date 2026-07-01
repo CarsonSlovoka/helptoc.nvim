@@ -106,4 +106,5 @@ require("helptoc.ui.filter-lsp").setup({
 ## TODO
 
 - [ ] 多window支持: 當前使用winid, bufid這些變數是單一的，所以當前最多不能在一個window使用. 也就是開兩個tab分別想在不同的md中都使用，就沒有辦法
+- [ ] [filter-lsp.lua](lua/helptoc/ui/filter-lsp.lua) 可以有highlight, 例如icon顏色等等
 
