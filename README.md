@@ -74,7 +74,8 @@ require("helptoc.ui.filter-lsp").setup({
 - `H`: Decrease Fold Level (Collapse)
 - `L`: Increase Fold Level (Expand)
 
-- `F`: Filter LSP Symbol Kinds
+- `F`: Filter LSP Symbol Kinds: 有UI介面
+- `<leader>f`: Filter LSP Symbol Kinds: 只有input提示, 需輸入: `6,12,14`之類的, 但能用`<C-f>`找input `@`歷史
 
 
 ## 支前的filetype
