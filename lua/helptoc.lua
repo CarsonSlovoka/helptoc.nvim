@@ -74,17 +74,36 @@ end
 local function setup_highlights()
   local hl = vim.api.nvim_set_hl
 
-  hl(ns_id, "SymbolKindClass", { fg = "#7aa2f7", bold = true })
-  hl(ns_id, "SymbolKindFunction", { fg = "#9ece6a", bold = true })
-  hl(ns_id, "SymbolKindMethod", { fg = "#bb9af7", bold = true })
-  hl(ns_id, "SymbolKindStruct", { fg = "#e0af68", bold = true })
-  hl(ns_id, "SymbolKindEnum", { fg = "#ff9e64", bold = true })
-  hl(ns_id, "SymbolKindInterface", { fg = "#73daca", bold = true })
-  hl(ns_id, "SymbolKindVariable", { fg = "#bb9af7" })
-  hl(ns_id, "SymbolKindField", { fg = "#73daca" })
-  hl(ns_id, "SymbolKindConstant", { fg = "#ff9e64", bold = true })
+  hl(ns_id, "SymbolKindFile", { fg = "#c0caf5" })
   hl(ns_id, "SymbolKindModule", { fg = "#c0caf5" })
   hl(ns_id, "SymbolKindNamespace", { fg = "#c0caf5" })
+  hl(ns_id, "SymbolKindPackage", { fg = "#c0caf5" })
+  hl(ns_id, "SymbolKindClass", { fg = "#7aa2f7", bold = true })
+  hl(ns_id, "SymbolKindMethod", { fg = "#bb9af7", bold = true })
+  hl(ns_id, "SymbolKindProperty", { fg = "#73daca" })
+  hl(ns_id, "SymbolKindField", { fg = "#73daca" })
+  hl(ns_id, "SymbolKindConstructor", { fg = "#9ece6a", bold = true })
+  hl(ns_id, "SymbolKindEnum", { fg = "#ff9e64", bold = true })
+  hl(ns_id, "SymbolKindInterface", { fg = "#73daca", bold = true })
+  hl(ns_id, "SymbolKindFunction", { fg = "#9ece6a", bold = true })
+  hl(ns_id, "SymbolKindVariable", { fg = "#bb9af7" })
+  hl(ns_id, "SymbolKindConstant", { fg = "#ff9e64", bold = true })
+
+  hl(ns_id, "SymbolKindString", { link = "Normal" })
+  hl(ns_id, "SymbolKindNumber", { link = "Normal" })
+  hl(ns_id, "SymbolKindBoolean", { link = "Normal" })
+
+  hl(ns_id, "SymbolKindArray", { fg = "#e0af68" })
+  hl(ns_id, "SymbolKindObject", { fg = "#e0af68" })
+  hl(ns_id, "SymbolKindKey", { fg = "#bb9af7" })
+
+  hl(ns_id, "SymbolKindNull", { link = "Normal" })
+
+  hl(ns_id, "SymbolKindEnumMember", { fg = "#ff9e64" })
+  hl(ns_id, "SymbolKindStruct", { fg = "#e0af68", bold = true })
+  hl(ns_id, "SymbolKindEvent", { fg = "#ff9e64" })
+  hl(ns_id, "SymbolKindOperator", { fg = "#73daca" })
+  hl(ns_id, "SymbolKindTypeParameter", { fg = "#73daca", bold = true })
 end
 
 local kind_icons = {
@@ -102,8 +121,19 @@ local kind_icons = {
   [vim.lsp.protocol.SymbolKind.Function]      = { icon = "󰊕", hl = "SymbolKindFunction" }, --ƒ
   [vim.lsp.protocol.SymbolKind.Variable]      = { icon = "󰀫", hl = "SymbolKindVariable" },
   [vim.lsp.protocol.SymbolKind.Constant]      = { icon = "󰏿", hl = "SymbolKindConstant" },
-  [vim.lsp.protocol.SymbolKind.Struct]        = { icon = "󰙅", hl = "SymbolKindStruct" }, --S
+
+  [vim.lsp.protocol.SymbolKind.String]        = { icon = "󰅳", hl = "SymbolKindString" },
+  [vim.lsp.protocol.SymbolKind.Number]        = { icon = "󰎠", hl = "SymbolKindNumber" },
+  [vim.lsp.protocol.SymbolKind.Boolean]       = { icon = "󰨙", hl = "SymbolKindBoolean" },
+
+  [vim.lsp.protocol.SymbolKind.Array]         = { icon = "󰅨", hl = "SymbolKindArray" },
+  [vim.lsp.protocol.SymbolKind.Object]        = { icon = "󰙅", hl = "SymbolKindObject" },
+  [vim.lsp.protocol.SymbolKind.Key]           = { icon = "󰌆", hl = "SymbolKindKey" },
+
+  [vim.lsp.protocol.SymbolKind.Null]          = { icon = "󰟢", hl = "SymbolKindNull" },
+
   [vim.lsp.protocol.SymbolKind.EnumMember]    = { icon = "󰉺", hl = "SymbolKindEnumMember" },
+  [vim.lsp.protocol.SymbolKind.Struct]        = { icon = "󰙅", hl = "SymbolKindStruct" }, --S
   [vim.lsp.protocol.SymbolKind.Event]         = { icon = "", hl = "SymbolKindEvent" },
   [vim.lsp.protocol.SymbolKind.Operator]      = { icon = "󰆕", hl = "SymbolKindOperator" },
   [vim.lsp.protocol.SymbolKind.TypeParameter] = { icon = "󰅲", hl = "SymbolKindTypeParameter" },
@@ -123,8 +153,10 @@ local function get_lsp_symbols(bufnr)
       for _, sym in ipairs(list) do
         if vim.tbl_contains({
               k.Module, k.Namespace, k.Package, k.Class, k.Method, k.Property, k.Field, k.Constructor, k.Enum, k.Interface, k.Function,
-              k.Struct,
+              k.Constant,
+              k.Array, k.Object, k.Key, -- 這幾個滿多的呈現出來有好有壞(可能太雜)
               k.EnumMember,
+              k.Struct,
             }, sym.kind) then
           table.insert(entries, {
             lnum = sym.selectionRange.start.line + 1,
